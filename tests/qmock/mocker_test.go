@@ -48,17 +48,10 @@ func Test_Recorder_Should_BeAbleToRecordAnyParameter(t *testing.T) {
 			assert.Equal(1, r.CallCount())
 
 			call := r.Call(0)
-			if len(call.Args) != 1 {
-				t.Fatalf("Expected args count 1, actual %d", len(call.Args))
-			}
+			assert.Equal(1, len(call.Args))
 
 			if reflect.TypeOf(v).Comparable() {
-				if call.Args[0] != v {
-					t.Fatalf(
-						"Expected %T '%v', actual %T '%v'",
-						call.Args[0], call.Args[0],
-						v, v)
-				}
+				assert.Equal(v, call.Args[0])
 			}
 		})
 	}
