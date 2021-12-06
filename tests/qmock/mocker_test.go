@@ -380,18 +380,12 @@ func Test_PanicHandling_RecoversFromTestTerminatingMethodCall(t *testing.T) {
 	assert := require.New(t)
 	mocker := qmock.NewMocker(t)
 
-	panicTriggered := false
-
 	func() {
 		defer mocker.MockerPanicHandler()
 
 		mocker.Fatal("Mocker panic handler test")
 		assert.FailNow("Expected action didn't panic")
-
-		panicTriggered = true
 	}()
-
-	assert.True(panicTriggered, "Invalid test - panic not triggered")
 
 	callCount := mocker.FatalCalls.CallCount()
 	assert.Equal(1, callCount)
