@@ -43,8 +43,8 @@ func Test_Recorder_Should_BeAbleToRecordAnyParameter(t *testing.T) {
 		t.Run(fmt.Sprintf("%T", v), func(t *testing.T) {
 			assert := require.New(t)
 			r := qmock.Recorder{}
-			r.AddCall(v)
 
+			r.AddCall(v)
 			assert.Equal(1, r.CallCount())
 
 			call := r.Call(0)
@@ -60,27 +60,18 @@ func Test_Recorder_Should_BeAbleToRecordAnyParameter(t *testing.T) {
 func Test_Recorder_Should_BeAbleToRecordMultipleParametersOfSameType(t *testing.T) {
 	for _, v := range testArgs {
 		t.Run(fmt.Sprintf("%T", v), func(t *testing.T) {
+			assert := require.New(t)
 			r := qmock.Recorder{}
-			r.AddCall(v, v, v)
 
-			if r.CallCount() != 1 {
-				t.Fatalf("Expected call count 1, actual %d", r.CallCount())
-			}
+			r.AddCall(v, v, v)
+			assert.Equal(1, r.CallCount())
 
 			call := r.Call(0)
-			if len(call.Args) != 3 {
-				t.Fatalf("Expected args count 3, actual %d", len(call.Args))
-			}
+			assert.Equal(3, call.ArgCount())
 
 			if reflect.TypeOf(v).Comparable() {
 				for i := 0; i < 3; i++ {
-					if call.Args[i] != v {
-						t.Fatalf(
-							"Expected arg %d %T '%v', actual %T '%v'",
-							i,
-							call.Args[0], call.Args[0],
-							v, v)
-					}
+					assert.Equal(v, call.Args[i], "Arg %d", i)
 				}
 			}
 		})
@@ -88,68 +79,54 @@ func Test_Recorder_Should_BeAbleToRecordMultipleParametersOfSameType(t *testing.
 }
 
 func Test_Recorder_Should_BeAbleToRecordMultipleParametersOfMixedType(t *testing.T) {
+	assert := require.New(t)
 	r := qmock.Recorder{}
-	r.AddCall(comparable...)
 
-	if r.CallCount() != 1 {
-		t.Fatalf("Expected call count 1, actual %d", r.CallCount())
-	}
+	r.AddCall(comparable...)
+	assert.Equal(1, r.CallCount())
 
 	call := r.Call(0)
-	if len(call.Args) != len(comparable) {
-		t.Fatalf("Expected args count %d, actual %d", len(comparable), len(call.Args))
-	}
+	assert.Equal(len(comparable), call.ArgCount())
 
 	for i, v := range testArgs {
 		if reflect.TypeOf(v).Comparable() {
-			if call.Args[i] != v {
-				t.Fatalf(
-					"Expected arg %d %T '%v', actual %T '%v'",
-					i,
-					call.Args[0], call.Args[0],
-					v, v)
-			}
+			assert.Equal(v, call.Args[i], "Arg %d", i)
 		}
 	}
 }
 
 func Test_Recorder_Should_CanResetCountAfterRecording(t *testing.T) {
+	assert := require.New(t)
 	r := &qmock.Recorder{}
 
-	verify := func(recorder *qmock.Recorder, expected int) {
-		callCount := recorder.CallCount()
-		if callCount != expected {
-			t.Fatalf("Expected call count %d, actual %d", expected, callCount)
-		}
-	}
-
 	r.AddCall(1, 2, 3)
-	verify(r, 1)
+	assert.Equal(1, r.CallCount())
 
 	r.Reset()
-	verify(r, 0)
+	assert.Equal(0, r.CallCount())
 
 	r.AddCall(1, 2, 3)
-	verify(r, 1)
+	assert.Equal(1, r.CallCount())
 }
 
 func Test_Call_VerifyArg_Should_ReturnNoErrorIfBothValuesAreNil(t *testing.T) {
+	assert := require.New(t)
 	call := qmock.NewCall(nil)
+
 	err := call.VerifyArg(0, nil)
-	if err != nil {
-		t.Fatalf("Expected no error, actual %+v", err)
-	}
+
+	assert.NoError(err)
 }
 
 func Test_Call_VerifyArg_Should_ReturnNoErrorIfComparableValuesAreEqual(t *testing.T) {
 	for _, v := range comparable {
 		t.Run(fmt.Sprintf("%T", v), func(t *testing.T) {
+			assert := require.New(t)
 			call := qmock.NewCall(v)
 
 			err := call.VerifyArg(0, v)
-			if err != nil {
-				t.Fatalf("Expected no error, actual %+v", err)
-			}
+
+			assert.NoError(err)
 		})
 	}
 }
@@ -157,41 +134,32 @@ func Test_Call_VerifyArg_Should_ReturnNoErrorIfComparableValuesAreEqual(t *testi
 func Test_Call_VerifyArg_Should_ReturnNoErrorIfIncomparableTypesAreEqualAndNilIsSame(t *testing.T) {
 	for _, v := range incomparable {
 		t.Run(fmt.Sprintf("%T", v), func(t *testing.T) {
+			assert := require.New(t)
 			call := qmock.NewCall(v)
 
 			err := call.VerifyArg(0, v)
-			if err != nil {
-				t.Fatalf("Expected no error, actual %+v", err)
-			}
+
+			assert.NoError(err)
 		})
 	}
 }
 
 func Test_Call_VerifyArg_Should_ReturnErrorIfVerifyingOutOfRangeArgument(t *testing.T) {
+	assert := require.New(t)
 	call := qmock.NewCall()
 
 	err := call.VerifyArg(0, 1)
-	if err == nil {
-		t.Fatal("Expected error, actual nil")
-	}
 
-	if err.Error() != "unknown arg: index 0" {
-		t.Fatalf("Expected 'unknown arg: index 0', actual '%s'", err.Error())
-	}
+	assert.EqualError(err, "Unknown arg: index 0")
 }
 
 func Test_Call_VerifyArg_Should_ReturnErrorIfVerifyingArgumentOfWrongType(t *testing.T) {
+	assert := require.New(t)
 	call := qmock.NewCall(0)
 
 	err := call.VerifyArg(0, "string")
-	if err == nil {
-		t.Fatal("Expected error, actual nil")
-	}
 
-	expected := "arg 0: expected type string, actual type int"
-	if err.Error() != expected {
-		t.Fatalf("Expected '%s', actual '%s'", expected, err.Error())
-	}
+	assert.EqualError(err, "arg 0: expected type string, actual type int")
 }
 
 func Test_Call_VerifyArg_Should_ReturnErrorIfComparableValuesDiffer(t *testing.T) {
@@ -206,21 +174,17 @@ func Test_Call_VerifyArg_Should_ReturnErrorIfComparableValuesDiffer(t *testing.T
 
 	for i, v := range comparable {
 		t.Run(fmt.Sprintf("%T", v), func(t *testing.T) {
-			call := qmock.NewCall(v)
+			assert := require.New(t)
 
+			call := qmock.NewCall(v)
 			test := testValues[i]
 			err := call.VerifyArg(0, test)
-			if err == nil {
-				t.Fatal("Expected error, actual nil")
-			}
 
 			expected := fmt.Sprintf(
 				"arg 0: expected %T '%+v', actual %T '%+v'",
 				test, test,
 				v, v)
-			if err.Error() != expected {
-				t.Fatalf("Expected '%s', actual '%s'", expected, err.Error())
-			}
+			assert.EqualError(err, expected)
 		})
 	}
 }
@@ -228,76 +192,61 @@ func Test_Call_VerifyArg_Should_ReturnErrorIfComparableValuesDiffer(t *testing.T
 func Test_Call_VerifyArg_Should_ReturnErrorIfIncomparableValuesDiffer(t *testing.T) {
 	for _, v := range incomparable {
 		t.Run(fmt.Sprintf("%T/nil", v), func(t *testing.T) {
+			assert := require.New(t)
 			call := qmock.NewCall(v)
+
 			err := call.VerifyArg(0, nil)
-			if err == nil {
-				t.Fatal("Expected error, actual nil")
-			}
 
 			expected := fmt.Sprintf("arg 0: expected %T nil, actual %T non-nil", v, v)
-			if err.Error() != expected {
-				t.Fatalf("Expected '%s', actual '%s'", expected, err.Error())
-			}
+			assert.EqualError(err, expected)
 		})
 	}
 
 	for _, v := range incomparable {
 		t.Run(fmt.Sprintf("%T/non-nil", v), func(t *testing.T) {
+			assert := require.New(t)
 			call := qmock.NewCall(nil)
 
 			err := call.VerifyArg(0, v)
-			if err == nil {
-				t.Fatal("Expected error, actual nil")
-			}
 
 			expected := fmt.Sprintf("arg 0: expected %T non-nil, actual %T nil", v, v)
-			if err.Error() != expected {
-				t.Fatalf("Expected '%s', actual '%s'", expected, err.Error())
-			}
+			assert.EqualError(err, expected)
 		})
 	}
 }
 
 func Test_Call_VerifyArgs_ShouldReturnNoErrorIfAllArgumentsAreValid(t *testing.T) {
+	assert := require.New(t)
 	call := qmock.NewCall(testArgs...)
 
 	err := call.VerifyArgs(testArgs...)
-	if err != nil {
-		t.Fatalf("Expected error, actual %+v", err)
-	}
+	assert.NoError(err)
 }
 
 func Test_Call_VerifyArgs_ShouldReturnErrorIfArgumentLengthsDiffer(t *testing.T) {
+	assert := require.New(t)
 	call := qmock.NewCall(1, 2, 3)
 
 	err := call.VerifyArgs(1, 3)
-	if err == nil {
-		t.Fatal("Expected error, actual nil")
-	}
 
 	expected := "different arg counts: expected 2, actual 3"
-	if err.Error() != expected {
-		t.Fatalf("Expected '%s', actual '%s'", expected, err.Error())
-	}
+	assert.EqualError(err, expected)
 }
 
 func Test_Call_VerifyArgs_ShouldReturnErrorIfAnyArgumentDiffers(t *testing.T) {
 	for i, v := range testArgs {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			assert := require.New(t)
+
 			testArgsCopy := make([]interface{}, len(testArgs))
 			copy(testArgsCopy, testArgs)
 			testArgsCopy[i] = nil
 
 			call := qmock.NewCall(testArgs...)
 			err := call.VerifyArgs(testArgsCopy...)
-			if err == nil {
-				t.Fatal("Expected error, actual nil")
-			}
 
 			expected := fmt.Sprintf("arg %d: expected %T nil, actual %T non-nil", i, v, v)
-			if err.Error() != expected {
-				t.Fatalf("Expected '%s', actual '%s'", expected, err.Error())
-			}
+			assert.EqualError(err, expected)
 		})
 	}
 }
@@ -366,11 +315,11 @@ func Test_Mocker_AllReturningMethodsShouldRecordACallWithoutFailure(t *testing.T
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			assert := require.New(t)
+
 			callCount := test()
 
-			if callCount != 1 {
-				t.Fatalf("Expected 1 call, actual %d calls", callCount)
-			}
+			assert.Equal(1, callCount)
 		})
 	}
 }
@@ -404,58 +353,60 @@ func Test_Mocker_AllTerminatingMethodsShouldRecordACallAndFail(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			assert := require.New(t)
+
+			panicTriggered := false
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						if !qmock.IsMockerPanic(r) {
-							t.Fatalf("Non-mocker panic: %+v", r)
-						}
+						panicTriggered = true
+						assert.True(qmock.IsMockerPanic(r))
 					}
 				}()
 
 				test.action()
-				t.Fatal("Expected action didn't panic")
+				assert.FailNow("Expected action didn't panic")
 			}()
 
+			assert.True(panicTriggered, "Invalid test - panic not triggered")
+
 			callCount := test.recorder.CallCount()
-			if callCount != 1 {
-				t.Fatalf("Expected 1 call, actual %d calls", callCount)
-			}
+			assert.Equal(1, callCount)
 		})
 	}
 }
 
 func Test_PanicHandling_RecoversFromTestTerminatingMethodCall(t *testing.T) {
+	assert := require.New(t)
 	mocker := qmock.NewMocker(t)
+
+	panicTriggered := false
 
 	func() {
 		defer mocker.MockerPanicHandler()
 
 		mocker.Fatal("Mocker panic handler test")
-		t.Fatal("Expected action didn't panic")
+		assert.FailNow("Expected action didn't panic")
+
+		panicTriggered = true
 	}()
 
+	assert.True(panicTriggered, "Invalid test - panic not triggered")
+
 	callCount := mocker.FatalCalls.CallCount()
-	if callCount != 1 {
-		t.Fatalf("Test invalid: wxpected 1 call, actual %d calls", callCount)
-	}
+	assert.Equal(1, callCount)
 }
 
 func Test_PanicHandling_TriggersPanifIfPanicNotFromMocker(t *testing.T) {
+	assert := require.New(t)
 	mocker := qmock.NewMocker(t)
 
 	panicTriggered := false
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				if qmock.IsMockerPanic(r) {
-					t.Fatalf("Unexpected mocker panic: %+v", r)
-				}
-
-				expected := "Unexpected panic: Not from TBMocker"
-				if r != expected {
-					t.Fatalf("Expected panic '%s', actual %+v", expected, r)
-				}
+				assert.False(qmock.IsMockerPanic(r))
+				assert.Equal("Unexpected panic: Not from TBMocker", r)
 
 				panicTriggered = true
 			}
@@ -468,20 +419,12 @@ func Test_PanicHandling_TriggersPanifIfPanicNotFromMocker(t *testing.T) {
 		}()
 	}()
 
-	if !panicTriggered {
-		t.Fatal("Expected panic not encountered")
-	}
+	assert.True(panicTriggered, "Invalid test - panic not triggered")
 }
 
 func Test_Mocker_ResetAll_Should_ResetEveryRecorder(t *testing.T) {
+	assert := require.New(t)
 	mocker := qmock.NewMocker(t)
-
-	verifyReset := func(name string, recorder *qmock.Recorder) {
-		callCount := recorder.CallCount()
-		if callCount != 0 {
-			t.Fatalf("%s: expected call count 0, actual %d", name, callCount)
-		}
-	}
 
 	recorders := map[string]*qmock.Recorder{
 		"Cleanup": &mocker.CleanupCalls,
@@ -511,7 +454,7 @@ func Test_Mocker_ResetAll_Should_ResetEveryRecorder(t *testing.T) {
 		defer mocker.MockerPanicHandler()
 
 		mocker.Fatal("Mocker panic handler test")
-		t.Fatal("Expected action didn't panic")
+		assert.FailNow("Expected action didn't panic")
 	}()
 
 	mocker.Skip("Mocker panic handler test")
@@ -519,16 +462,11 @@ func Test_Mocker_ResetAll_Should_ResetEveryRecorder(t *testing.T) {
 	mocker.ResetAll()
 
 	for name, recorder := range recorders {
-		verifyReset(name, recorder)
+		assert.Zero(recorder.CallCount(), "Recorder %s", name)
 	}
 
-	if mocker.Failed() {
-		t.Fatal("Failed flag not cleared")
-	}
-
-	if mocker.Skipped() {
-		t.Fatal("Skipped flag not cleared")
-	}
+	assert.False(mocker.Failed(), "Failed flag not cleared")
+	assert.False(mocker.Skipped(), "Skipped flag not cleared")
 }
 
 func Test_SideEffects_VerifyFailedBehaviourAfterFailingTrigger(t *testing.T) {
@@ -546,7 +484,11 @@ func Test_SideEffects_VerifyFailedBehaviourAfterFailingTrigger(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			assert := require.New(t)
 			mocker := qmock.NewMocker(t)
+
+			panicTriggered := false
+
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
@@ -554,15 +496,16 @@ func Test_SideEffects_VerifyFailedBehaviourAfterFailingTrigger(t *testing.T) {
 							t.Fatalf("Non-mocker panic: %+v", r)
 						}
 					}
+
+					panicTriggered = true
 				}()
 
 				test(mocker)
-				t.Fatal("Expected action didn't panic")
+				assert.FailNow("Expected action didn't panic")
 			}()
 
-			if !mocker.Failed() {
-				t.Fatalf("Mocker does not register test has failed")
-			}
+			assert.True(panicTriggered, "Invalid test - panic not triggered")
+			assert.True(mocker.Failed(), "Method %s not registered as failure", name)
 		})
 	}
 }
@@ -582,17 +525,18 @@ func Test_SideEffects_VerifySkippedBehaviourAfterSkippingTrigger(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			assert := require.New(t)
 			mocker := qmock.NewMocker(t)
 			test(mocker)
 
-			if !mocker.Skipped() {
-				t.Fatalf("Mocker does not register test has skipped")
-			}
+			assert.True(mocker.Skipped(), "Method %s not registering test as skipped", name)
 		})
 	}
 }
 
 func Test_SideEffects_CleanupMethodsShouldBeCalled(t *testing.T) {
+	assert := require.New(t)
+
 	cleaner1Called := false
 	cleaner2Called := false
 
@@ -610,11 +554,6 @@ func Test_SideEffects_CleanupMethodsShouldBeCalled(t *testing.T) {
 		})
 	})
 
-	if !cleaner1Called {
-		t.Errorf("Cleaner method 1 didn't get called")
-	}
-
-	if !cleaner2Called {
-		t.Errorf("Cleaner method 2 didn't get called")
-	}
+	assert.True(cleaner1Called, "Cleaner method 1 not called")
+	assert.True(cleaner2Called, "Cleaner method 2 not called")
 }
