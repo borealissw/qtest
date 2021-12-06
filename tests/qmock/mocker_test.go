@@ -150,7 +150,7 @@ func Test_Call_VerifyArg_Should_ReturnErrorIfVerifyingOutOfRangeArgument(t *test
 
 	err := call.VerifyArg(0, 1)
 
-	assert.EqualError(err, "Unknown arg: index 0")
+	assert.EqualError(err, "unknown arg: index 0")
 }
 
 func Test_Call_VerifyArg_Should_ReturnErrorIfVerifyingArgumentOfWrongType(t *testing.T) {
