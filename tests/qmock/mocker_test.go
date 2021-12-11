@@ -3,6 +3,7 @@ package qmock_test
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -374,6 +375,38 @@ func Test_Mocker_AllTerminatingMethodsShouldRecordACallAndFail(t *testing.T) {
 			assert.Equal(1, callCount)
 		})
 	}
+}
+
+func Test_Mocker_ShouldHandleDataRacesCorrectlyWhenRecordingCalls(t *testing.T) {
+	var wg sync.WaitGroup
+	mocker := qmock.NewMocker(t)
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(callNo int) {
+			mocker.Logf("Call %d", callNo)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+	require.Equal(t, 1000, mocker.LogfCalls.CallCount())
+}
+
+func Test_Mocker_ShouldHandleDataRacesCorrectlyWhenRecordingAndAccessingCalls(t *testing.T) {
+	var wg sync.WaitGroup
+	mocker := qmock.NewMocker(t)
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(callNo int) {
+			mocker.Logf("Call %d: count now %d", callNo, mocker.LogfCalls.CallCount())
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+	require.Equal(t, 1000, mocker.LogfCalls.CallCount())
 }
 
 func Test_PanicHandling_RecoversFromTestTerminatingMethodCall(t *testing.T) {

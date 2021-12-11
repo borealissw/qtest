@@ -3,6 +3,7 @@ package qmock
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -15,21 +16,34 @@ func IsMockerPanic(recovery interface{}) bool {
 
 type Recorder struct {
 	calls []Call
+	lock  sync.Mutex
 }
 
 func (recorder *Recorder) AddCall(args ...interface{}) {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+
 	recorder.calls = append(recorder.calls, NewCall(args...))
 }
 
 func (recorder *Recorder) CallCount() int {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+
 	return len(recorder.calls)
 }
 
 func (recorder *Recorder) Call(index int) *Call {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+
 	return &(recorder.calls[index])
 }
 
 func (recorder *Recorder) Reset() {
+	recorder.lock.Lock()
+	defer recorder.lock.Unlock()
+
 	recorder.calls = nil
 }
 
