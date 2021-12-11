@@ -16,7 +16,7 @@ func IsMockerPanic(recovery interface{}) bool {
 
 type Recorder struct {
 	calls []Call
-	lock  sync.Mutex
+	lock  sync.RWMutex
 }
 
 func (recorder *Recorder) AddCall(args ...interface{}) {
@@ -27,15 +27,15 @@ func (recorder *Recorder) AddCall(args ...interface{}) {
 }
 
 func (recorder *Recorder) CallCount() int {
-	recorder.lock.Lock()
-	defer recorder.lock.Unlock()
+	recorder.lock.RLock()
+	defer recorder.lock.RUnlock()
 
 	return len(recorder.calls)
 }
 
 func (recorder *Recorder) Call(index int) *Call {
-	recorder.lock.Lock()
-	defer recorder.lock.Unlock()
+	recorder.lock.RLock()
+	defer recorder.lock.RUnlock()
 
 	return &(recorder.calls[index])
 }
